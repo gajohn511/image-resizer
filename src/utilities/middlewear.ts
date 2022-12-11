@@ -1,8 +1,8 @@
 import express from "express";
 import { BaseEncodingOptions } from "fs";
-import { readdir } from "fs/promises";
+import { readdir, appendFile } from "fs/promises";
 import { FsException } from "./exceptions";
-import { IMAGES_FOLDER } from "./secrets";
+import { IMAGES_FOLDER, ACCESS_IMAGES_LOG } from "./secrets";
 
 /**
  * @description Middlewear private function
@@ -17,12 +17,28 @@ const getAllFiles = async (): Promise<string[]> => {
         const files = (await readdir(IMAGES_FOLDER, opts))
             .filter((item) => !item.isDirectory())
             .map((file) => file.name);
+        await accessImagesLog();
         return files;
     } catch (error) {
         throw new FsException(
             `error trying to read directory '${IMAGES_FOLDER}' \n ${(<Error>error).message}`,
             "getAllFiles Exception"
         );
+    }
+};
+
+/**
+ * @description basic logging to a file
+ * @returns {void} void
+ */
+const accessImagesLog = async (): Promise<void> => {
+    try {
+        const time = new Date().toLocaleString("en-US"),
+            content = `(${time}) accessed the images folder.\n`;
+        await appendFile(ACCESS_IMAGES_LOG, content);
+    } catch (error) {
+        const err = <Error>error;
+        throw new FsException(`tried to log to file 🤦🏻‍♂️\n\n${err}`);
     }
 };
 
